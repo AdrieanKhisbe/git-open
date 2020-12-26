@@ -20,6 +20,7 @@ c,commit!     open current commit
 i,issue!      open issues page
 s,suffix=     append this suffix
 p,print!      just print the url
+r,ref=        specify reference to override HEAD
 "
 
 # https://github.com/koalaman/shellcheck/wiki/SC1090
@@ -32,13 +33,14 @@ is_issue=0
 protocol="https"
 print_only=0
 suffix_flag=""
+reference="HEAD"
 
 while test $# != 0; do
   case "$1" in
   --commit) is_commit=1;;
   --issue) is_issue=1;;
   --suffix=*) suffix_flag="$1";;
-  --print) print_only=1;;
+  --ref=*) reference="${1#--ref=}" ;;
   --) shift; break ;;
   esac
   shift
@@ -56,7 +58,7 @@ if ! git rev-parse --is-inside-work-tree &>/dev/null; then
 fi
 
 # choose remote. priority to: provided argument, default in config, detected tracked remote, 'origin'
-branch=${2:-$(git symbolic-ref -q --short HEAD)}
+branch=${2:-$(git symbolic-ref -q --short $reference 2> /dev/null)}
 upstream_branch_full_name=$(git config "branch.$branch.merge")
 upstream_branch=${upstream_branch_full_name#"refs/heads/"}
 tracked_remote=$(git config "branch.$branch.remote")
@@ -170,6 +172,7 @@ domain=$(getConfig "domain")
 protocol=$(getConfig "protocol")
 
 # Remote ref to open
+# FIXME: need to preserve branch name if possible
 remote_ref=${upstream_branch:-${branch:-$(git describe --tags --exact-match 2>/dev/null || git rev-parse HEAD)}}
 
 # Split arguments on '/'
@@ -181,6 +184,7 @@ if (( is_issue )); then
 else
   # Make # and % characters url friendly
   #   github.com/paulirish/git-open/pull/24
+  # ! FIXME
   remote_ref=${remote_ref//%/%25} remote_ref=${remote_ref//#/%23}
   providerBranchRef="/tree/$remote_ref"
 fi
@@ -238,7 +242,7 @@ fi
 openurl="$protocol://$domain/$urlpath"
 
 if (( is_commit )); then
-    sha=$(git rev-parse HEAD)
+    sha=$(git rev-parse $reference)
     openurl="$openurl/commit/$sha"
 elif [[ $remote_ref != "master" ]]; then
     # simplify URL for master

@@ -76,6 +76,14 @@ setup() {
   assert_output "https://github.com/user/repo/tree/mybranch"
 }
 
+@test "gh: branch" {
+  git remote set-url origin "git@github.com:user/repo.git"
+  git checkout -B "mybranch"
+  git checkout master
+  run ../git-open --ref "mybranch"
+  assert_output "https://github.com/user/repo/tree/mybranch"
+}
+
 @test "gh: upstream branch" {
   git remote set-url origin "git@github.com:user/repo.git"
   git remote add upstreamRemote "git@github.com:user/upstream-repo.git"
@@ -164,6 +172,15 @@ setup() {
   git remote set-url origin "github.com:paulirish/git-open.git"
   sha=$(git rev-parse HEAD)
   run ../git-open "--commit"
+  assert_output "https://github.com/paulirish/git-open/commit/${sha}"
+}
+
+@test "gh: git open --commit with custom-reference" {
+  git remote set-url origin "github.com:paulirish/git-open.git"
+  git checkout -B develop HEAD
+  git checkout master
+  sha=$(git rev-parse develop)
+  run ../git-open "--commit" "--ref" "develop"
   assert_output "https://github.com/paulirish/git-open/commit/${sha}"
 }
 
